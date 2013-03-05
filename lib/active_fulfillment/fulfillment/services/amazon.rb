@@ -13,16 +13,16 @@ module ActiveMerchant
         :inventory => {
           :url     => 'https://fba-inventory.amazonaws.com',
           :xmlns   => 'http://fba-inventory.amazonaws.com/doc/2009-07-31/',
-          :version => '2009-07-31'          
+          :version => '2009-07-31'
         }
       }
-    
-      SUCCESS, FAILURE, ERROR = 'Accepted', 'Failure', 'Error'    
+
+      SUCCESS, FAILURE, ERROR = 'Accepted', 'Failure', 'Error'
       MESSAGES = {
         :status => {
           'Accepted' => 'Success',
           'Failure'  => 'Failed',
-          'Error'    => 'An error occurred'          
+          'Error'    => 'An error occurred'
         },
         :create => {
           'Accepted' => 'Successfully submitted the order',
@@ -33,10 +33,9 @@ module ActiveMerchant
           'Accepted' => 'Successfully submitted request',
           'Failure'  => 'Failed to submit request',
           'Error'    => 'An error occurred while submitting request'
-          
         }
       }
-      
+
       ENV_NAMESPACES = { 'xmlns:xsd' => 'http://www.w3.org/2001/XMLSchema',
                          'xmlns:env' => 'http://schemas.xmlsoap.org/soap/envelope/',
                          'xmlns:xsi' => 'http://www.w3.org/2001/XMLSchema-instance'
@@ -49,7 +48,7 @@ module ActiveMerchant
       }
 
       @@digest = OpenSSL::Digest::Digest.new("sha1")
-      
+
       OPERATIONS = {
         :outbound => {
           :status => 'GetServiceStatus',
@@ -63,7 +62,7 @@ module ActiveMerchant
           :list_next => 'ListUpdatedInventorySupplyByNextToken'
         }
       }
-                   
+
       # The first is the label, and the last is the code
       # Standard:  3-5 business days
       # Expedited: 2 business days
@@ -75,16 +74,16 @@ module ActiveMerchant
           [ 'Priority Shipping', 'Priority' ]
         ].inject(ActiveSupport::OrderedHash.new){|h, (k,v)| h[k] = v; h}
       end
-      
+
       def self.sign(aws_secret_access_key, auth_string)
         Base64.encode64(OpenSSL::HMAC.digest(@@digest, aws_secret_access_key, auth_string)).strip
       end
-            
+
       def initialize(options = {})
         requires!(options, :login, :password)
         super
       end
-      
+
       def status
         commit :outbound, :status, build_status_request
       end
@@ -93,7 +92,7 @@ module ActiveMerchant
         requires!(options, :order_date, :comment, :shipping_method)
         commit :outbound, :create, build_fulfillment_request(order_id, shipping_address, line_items, options)
       end
-      
+
       def fetch_current_orders
         commit :outbound, :list, build_get_current_fulfillment_orders_request
       end
@@ -110,7 +109,7 @@ module ActiveMerchant
             next_page.stock_levels.merge!(response.stock_levels)
             response = next_page
           end
-          
+
           response
         end
       end
@@ -134,16 +133,17 @@ module ActiveMerchant
           response
         end
       end
-      
+
       def valid_credentials?
         status.success?
       end
-   
+
       def test_mode?
         false
       end
 
       private
+
       def soap_request(request)
         xml = Builder::XmlMarkup.new :indent => 2
         xml.instruct!
@@ -157,14 +157,14 @@ module ActiveMerchant
         end
         xml.target!
       end
-      
+
       def build_status_request
         request = OPERATIONS[:outbound][:status]
         soap_request(request) do |xml|
           xml.tag! request, { 'xmlns' => SERVICES[:outbound][:xmlns] }
         end
       end
-      
+
       def build_get_current_fulfillment_orders_request
         request = OPERATIONS[:outbound][:list]
         soap_request(request) do |xml|
@@ -184,7 +184,7 @@ module ActiveMerchant
             xml.tag! "DisplayableOrderDateTime", options[:order_date].strftime("%Y-%m-%dT%H:%M:%SZ")
             xml.tag! "DisplayableOrderComment", options[:comment]
             xml.tag! "ShippingSpeedCategory", options[:shipping_method]
-   
+
             add_address(xml, shipping_address)
             add_items(xml, line_items)
           end
@@ -236,12 +236,12 @@ module ActiveMerchant
         login     = @options[:login]
         timestamp = "#{Time.now.utc.strftime("%Y-%m-%dT%H:%M:%S")}Z"
         signature = self.class.sign(@options[:password], "#{request}#{timestamp}")
-      
+
         xml.tag! 'aws:AWSAccessKeyId', login, AWS_SECURITY_ATTRIBUTES
         xml.tag! 'aws:Signature', signature, AWS_SECURITY_ATTRIBUTES
         xml.tag! 'aws:Timestamp', timestamp, AWS_SECURITY_ATTRIBUTES
       end
-        
+
       def add_items(xml, line_items) 
         Array(line_items).each_with_index do |item, index|
           xml.tag! 'Item' do
@@ -253,7 +253,7 @@ module ActiveMerchant
           end
         end
       end
-    
+
       def add_address(xml, address)
         xml.tag! 'DestinationAddress' do 
           xml.tag! 'Name', address[:name]
@@ -267,26 +267,26 @@ module ActiveMerchant
           xml.tag! 'PhoneNumber', address[:phone]  unless address[:phone].blank?
         end
       end
-      
+
       def commit(service, op, body)
         data = ssl_post(SERVICES[service][:url], body, 'Content-Type' => 'application/soap+xml; charset=utf-8')
-        response = parse_response(service, op, data)   
+        response = parse_response(service, op, data)
         Response.new(success?(response), message_from(response), response)
-      rescue ActiveMerchant::ResponseError => e        
+      rescue ActiveMerchant::ResponseError => e
         response = parse_error(e.response)
         Response.new(false, message_from(response), response)
       end
-      
+
       def success?(response)
         response[:response_status] == SUCCESS
       end
-      
+
       def message_from(response)
         response[:response_comment]
       end
-      
+
       def parse_response(service, op, xml)
-        begin 
+        begin
           document = REXML::Document.new(xml)
         rescue REXML::ParseException
           return {:success => FAILURE}
@@ -306,12 +306,12 @@ module ActiveMerchant
           raise ArgumentError, "Unknown service #{service}"
         end
       end
-      
+
       def parse_fulfillment_response(op, document)
         response = {}
         action   = OPERATIONS[:outbound][op]
         node     = REXML::XPath.first(document, "//ns1:#{action}Response")
-        
+
         response[:response_status]  = SUCCESS
         response[:response_comment] = MESSAGES[op][SUCCESS]
         response
@@ -334,7 +334,7 @@ module ActiveMerchant
         response[:response_status] = SUCCESS
         response
       end
-      
+
       def parse_tracking_response(document)
         response = {}
         response[:tracking_numbers] = {}
@@ -348,7 +348,7 @@ module ActiveMerchant
         response[:response_status] = SUCCESS
         response
       end
-      
+
       def parse_error(http_response)
         response = {}
         response[:http_code] = http_response.code
@@ -361,7 +361,7 @@ module ActiveMerchant
         failed_node = node.find_first_recursive {|sib| sib.name == "Fault" }
         faultcode_node = node.find_first_recursive {|sib| sib.name == "faultcode" }
         faultstring_node = node.find_first_recursive {|sib| sib.name == "faultstring" }
-          
+
         response[:response_status]  = FAILURE
         response[:faultcode]        = faultcode_node ? faultcode_node.text : ""
         response[:faultstring]      = faultstring_node ? faultstring_node.text : ""
@@ -373,6 +373,6 @@ module ActiveMerchant
         response[:response_comment] = "#{response[:http_code]}: #{response[:http_message]}"
         response
       end
-    end 
+    end
   end
 end

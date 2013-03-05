@@ -20,7 +20,7 @@ module ActiveMerchant
         :status => {
           'Accepted' => 'Success',
           'Failure'  => 'Failed',
-          'Error'    => 'An error occurred'          
+          'Error'    => 'An error occurred'
         },
         :create => {
           'Accepted' => 'Successfully submitted the order',
@@ -31,7 +31,6 @@ module ActiveMerchant
           'Accepted' => 'Successfully submitted request',
           'Failure'  => 'Failed to submit request',
           'Error'    => 'An error occurred while submitting request'
-          
         }
       }
 
@@ -98,7 +97,7 @@ module ActiveMerchant
       # Expedited: 2 business days
       # Priority:  1 business day
       def self.shipping_methods
-        [ 
+        [
           [ 'Standard Shipping', 'Standard' ],
           [ 'Expedited Shipping', 'Expedited' ],
           [ 'Priority Shipping', 'Priority' ]
@@ -251,10 +250,10 @@ module ActiveMerchant
 
           response[:stock_levels][params['SellerSKU']] = params['InStockSupplyQuantity'].to_i
         end
-        
+
         next_token = REXML::XPath.first(document, '//NextToken')
         response[:next_token] = next_token ? next_token.text : nil
-        
+
         response[:response_status] = SUCCESS
         response
       end
@@ -347,7 +346,7 @@ module ActiveMerchant
           :ShippingSpeedCategory => options[:shipping_method]
         }
         params[:DisplayableOrderComment] = options[:comment] if options[:comment]
-        
+
         request = build_basic_api_query(params.merge(options))
         request = request.merge build_address(shipping_address)
         request = request.merge build_items(line_items)

@@ -1,14 +1,14 @@
 shipwire:
-  login: 
-  password: 
+  login:
+  password:
 
 webgistix:
-  login: 
-  password: 
-  
+  login:
+  password:
+
 amazon:
-  login: 
-  password: 
+  login:
+  password:
 
 amazon_mws:
   login:

@@ -6,14 +6,14 @@ class AmazonMarketplaceWebServiceTest < Test::Unit::TestCase
                                                :login => 'l',
                                                :password => 'p'
                                                )
-    
-    @options = { 
+
+    @options = {
       :shipping_method => 'Standard',
       :order_date => Time.now.utc.yesterday,
       :comment => "Delayed due to tornados"
     }
-    
-    @address = { 
+
+    @address = {
       :name => 'Johnny Chase',
       :address1 => '100 Information Super Highway',
       :address2 => 'Suite 66',
@@ -23,7 +23,7 @@ class AmazonMarketplaceWebServiceTest < Test::Unit::TestCase
       :zip => '90210',
       :phone => "(555)555-5555"
     }
-    
+
     @line_items = [
                    { :sku => 'SETTLERS1',
                      :quantity => 1,
@@ -85,7 +85,7 @@ class AmazonMarketplaceWebServiceTest < Test::Unit::TestCase
     }
 
     uri = URI.parse("https://#{AmazonMarketplaceWebService::ENDPOINTS[:us]}")
-    
+
     assert_equal expected_signature, service.sign(:POST, uri, options)
   end
 
@@ -143,7 +143,7 @@ class AmazonMarketplaceWebServiceTest < Test::Unit::TestCase
     }
 
     actual_items = @service.build_items(@line_items)
-                        
+
     assert_equal expected_items, @service.build_items(@line_items)
   end
 
@@ -191,14 +191,14 @@ class AmazonMarketplaceWebServiceTest < Test::Unit::TestCase
     @service.expects(:ssl_post).with() { |uri, query, headers|
       query.include?('ListInventorySupply') && !query.include?('ListInventorySupplyByNextToken')
     }.returns(xml_fixture('amazon_mws/inventory_list_inventory_supply_by_next_token'))
-    
+
     @service.expects(:ssl_post).with() { |uri, query, headers|
       query.include?('ListInventorySupplyByNextToken') && query.include?('NextToken')
     }.returns(xml_fixture('amazon_mws/inventory_list_inventory_supply'))
 
     response = @service.fetch_stock_levels
     assert response.success?
-    
+
     assert_equal 202, response.stock_levels['GN-00-01A']
     assert_equal 199, response.stock_levels['GN-00-02A']
     assert_equal 0, response.stock_levels['GN-01-01A']
@@ -220,7 +220,6 @@ class AmazonMarketplaceWebServiceTest < Test::Unit::TestCase
     assert_equal %w{93ZZ00}, response.tracking_numbers['extern_id_1154539615776']
     assert_nil response.tracking_numbers['extern_id_1154539615777']
   end
-
 
   def test_fetch_multiple_tracking_numbers
     @service.expects(:ssl_post).returns(xml_fixture('amazon_mws/fulfillment_get_fullfillment_order_with_multiple_tracking_numbers'))
@@ -296,6 +295,7 @@ class AmazonMarketplaceWebServiceTest < Test::Unit::TestCase
   end
 
   private
+
   def build_mock_response(response, message, code = "200")
     http_response = mock(:code => code, :message => message)
     http_response.stubs(:body).returns(response)

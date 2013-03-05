@@ -5,28 +5,28 @@ module ActiveMerchant
         :fulfillment => 'https://www.webgistix.com/XML/CreateOrder.asp',
         :inventory => 'https://www.webgistix.com/XML/GetInventory.asp',
         :tracking  => 'https://www.webgistix.com/XML/GetTracking.asp'
-      } 
+      }
       TEST_URLS = SERVICE_URLS.merge({
         :fulfillment => 'https://www.webgistix.com/XML/CreateOrderTest.asp'
       })
-      
+
       SUCCESS, DUPLICATE, FAILURE = 'True', 'Duplicate', 'False'
 
       SUCCESS_MESSAGE = 'Successfully submitted the order'
       FAILURE_MESSAGE = 'Failed to submit the order'
       DUPLICATE_MESSAGE = 'This order has already been successfully submitted'
-      
+
       INVALID_LOGIN = 'Invalid Credentials'
       NOT_SHIPPED = 'Not Shipped'
 
-      # If a request is detected as a duplicate only the original data will be 
+      # If a request is detected as a duplicate only the original data will be
       # used by Webgistix, and the subsequent responses will have a
       # :duplicate parameter set in the params hash.
       self.retry_safe = true
-      
+
       # The first is the label, and the last is the code
       def self.shipping_methods
-        [ 
+        [
           ["UPS Ground Shipping", "Ground"],
           ["UPS Ground", "Ground"],
           ["UPS Standard Shipping (Canada Only)", "Standard"],
@@ -63,7 +63,7 @@ module ActiveMerchant
           ["USPS Media Mail", "Media Mail"]
         ].inject(ActiveSupport::OrderedHash.new){|h, (k,v)| h[k] = v; h}
       end
-      
+
       # Pass in the login and password for the shipwire account.
       # Optionally pass in the :test => true to force test mode
       def initialize(options = {})
@@ -71,7 +71,7 @@ module ActiveMerchant
         super
       end
 
-      def fulfill(order_id, shipping_address, line_items, options = {})  
+      def fulfill(order_id, shipping_address, line_items, options = {})
         requires!(options, :shipping_method) 
         commit :fulfillment, build_fulfillment_request(order_id, shipping_address, line_items, options)
       end
@@ -83,42 +83,43 @@ module ActiveMerchant
       def fetch_tracking_numbers(order_ids, options = {})
         commit :tracking, build_tracking_request(order_ids, options)
       end
-      
+
       def valid_credentials?
         response = fulfill('', {}, [], :shipping_method => '')
         response.message != INVALID_LOGIN
       end
-   
+
       def test_mode?
         true
       end
 
       private
-      #<?xml version="1.0"?> 
-      # <OrderXML> 
-      #   <Password>Webgistix</Password> 
-      #   <CustomerID>3</CustomerID> 
-      #   <Order> 
-      #     <ReferenceNumber></ReferenceNumber> 
-      #     <Company>Test Company</Company> 
-      #     <Name>Joe Smith</Name> 
-      #     <Address1>123 Main St.</Address1> 
-      #     <Address2></Address2> 
-      #     <Address3></Address3> 
-      #     <City>Olean</City> 
-      #     <State>NY</State> 
-      #     <ZipCode>14760</ZipCode> 
-      #     <Country>United States</Country> 
-      #     <Email>info@webgistix.com</Email> 
-      #     <Phone>1-123-456-7890</Phone> 
-      #     <ShippingInstructions>Ground</ShippingInstructions> 
-      #     <OrderComments>Test Order</OrderComments> 
-      #     <Approve>0</Approve> 
-      #     <Item> 
-      #      <ItemID>testitem</ItemID> 
-      #      <ItemQty>2</ItemQty> 
-      #     </Item> 
-      #   </Order> 
+
+      #<?xml version="1.0"?>
+      # <OrderXML>
+      #   <Password>Webgistix</Password>
+      #   <CustomerID>3</CustomerID>
+      #   <Order>
+      #     <ReferenceNumber></ReferenceNumber>
+      #     <Company>Test Company</Company>
+      #     <Name>Joe Smith</Name>
+      #     <Address1>123 Main St.</Address1>
+      #     <Address2></Address2>
+      #     <Address3></Address3>
+      #     <City>Olean</City>
+      #     <State>NY</State>
+      #     <ZipCode>14760</ZipCode>
+      #     <Country>United States</Country>
+      #     <Email>info@webgistix.com</Email>
+      #     <Phone>1-123-456-7890</Phone>
+      #     <ShippingInstructions>Ground</ShippingInstructions>
+      #     <OrderComments>Test Order</OrderComments>
+      #     <Approve>0</Approve>
+      #     <Item>
+      #      <ItemID>testitem</ItemID>
+      #      <ItemQty>2</ItemQty>
+      #     </Item>
+      #   </Order>
       # </OrderXML>
       def build_fulfillment_request(order_id, shipping_address, line_items, options)
         xml = Builder::XmlMarkup.new :indent => 2
@@ -129,11 +130,11 @@ module ActiveMerchant
         end
         xml.target!
       end
-      
-      #<?xml version="1.0"?> 
-      # <InventoryXML> 
-      #   <Password>Webgistix</Password> 
-      #   <CustomerID>3</CustomerID> 
+
+      #<?xml version="1.0"?>
+      # <InventoryXML>
+      #   <Password>Webgistix</Password>
+      #   <CustomerID>3</CustomerID>
       # </InventoryXML>
       def build_inventory_request(options)
         xml = Builder::XmlMarkup.new :indent => 2
@@ -145,8 +146,8 @@ module ActiveMerchant
 
       #<?xml version="1.0"?>
       # <TrackingXML>
-      #   <Password>Webgistix</Password> 
-      #   <CustomerID>3</CustomerID> 
+      #   <Password>Webgistix</Password>
+      #   <CustomerID>3</CustomerID>
       #   <Tracking>
       #     <Order>AB12345</Order>
       #   </Tracking>
@@ -159,7 +160,7 @@ module ActiveMerchant
         xml.instruct!
         xml.tag! 'TrackingXML' do
           add_credentials(xml)
-          
+
           order_ids.each do |o_id|
             xml.tag! 'Tracking' do
               xml.tag! 'Order', o_id
@@ -179,7 +180,7 @@ module ActiveMerchant
           xml.tag! 'ShippingInstructions', options[:shipping_method]
           xml.tag! 'Approve', 1
           xml.tag! 'OrderComments', options[:comment] unless options[:comment].blank?
-    
+
           add_address(xml, shipping_address, options)
 
           Array(line_items).each_with_index do |line_item, index|
@@ -187,7 +188,7 @@ module ActiveMerchant
           end
         end
       end
-      
+
       def add_address(xml, address, options)
         xml.tag! 'Name', address[:name]
         xml.tag! 'Address1', address[:address1]
@@ -197,12 +198,12 @@ module ActiveMerchant
         xml.tag! 'State', address[:state]
         xml.tag! 'ZipCode', address[:zip]
         xml.tag! 'Company', address[:company]
-          
+
         unless address[:country].blank?
           country = Country.find(address[:country])
           xml.tag! 'Country', country.name
         end
-        
+
         xml.tag! 'Phone', address[:phone]
         xml.tag! 'Email', options[:email] unless options[:email].blank?
       end
@@ -216,20 +217,20 @@ module ActiveMerchant
 
       def commit(action, request)
         url = test? ? TEST_URLS[action] : SERVICE_URLS[action]
-        
+
         data = ssl_post(url, request,
           'EndPointURL'  => url,
           'Content-Type' => 'text/xml; charset="utf-8"'
         )
-        
+
         response = parse_response(action, data)
         Response.new(success?(response), message_from(response), response, :test => test?)
       end
-      
+
       def success?(response)
         response[:success] == SUCCESS || response[:success] == DUPLICATE
       end
-      
+
       def message_from(response)
         if response[:duplicate]
           DUPLICATE_MESSAGE
@@ -241,9 +242,9 @@ module ActiveMerchant
           FAILURE_MESSAGE
         end
       end
-      
+
       def parse_response(action, xml)
-        begin 
+        begin
           document = REXML::Document.new("<response>#{xml}</response>")
         rescue REXML::ParseException
           return {:success => FAILURE}
@@ -260,10 +261,10 @@ module ActiveMerchant
           raise ArgumentError, "Unknown action #{action}"
         end
       end
-      
+
       def parse_fulfillment_response(document)
         response = parse_errors(document)
-        
+
         # Check if completed
         if completed = REXML::XPath.first(document, '//Completed')
           completed.elements.each do |e|
@@ -272,9 +273,9 @@ module ActiveMerchant
         else
           response[:success] = FAILURE
         end
-        
+
         response[:duplicate] = response[:success] == DUPLICATE
-        
+
         response
       end
 
@@ -306,17 +307,17 @@ module ActiveMerchant
 
         response
       end
-      
+
       def parse_errors(document)
         response = {}
-        
+
         REXML::XPath.match(document, "//Errors/Error").to_a.each_with_index do |e, i|
           response["error_#{i}".to_sym] = e.text
         end
-        
+
         response[:success] = response.empty? ? SUCCESS : FAILURE
         response
-      end        
+      end
     end
   end
 end

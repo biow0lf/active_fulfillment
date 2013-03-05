@@ -3,18 +3,16 @@ require 'test_helper'
 class ShipwireTest < Test::Unit::TestCase
   def setup
     Base.mode = :test
-    
-    @shipwire = ShipwireService.new(
-                  :login => 'cody@example.com',
-                  :password => 'test'
-                )
-    
-    @options = { 
+
+    @shipwire = ShipwireService.new(:login => 'cody@example.com',
+                                    :password => 'test')
+
+    @options = {
       :warehouse => '01',
       :shipping_method => 'UPS Ground'
     }
-    
-    @address = { 
+
+    @address = {
       :name => 'Fred Brooks',
       :address1 => '1234 Penny Lane',
       :city => 'Jonsetown',
@@ -24,28 +22,28 @@ class ShipwireTest < Test::Unit::TestCase
       :company => 'MyCorp',
       :email    => 'buyer@jadedpallet.com'
     }
-    
+
     @line_items = [ { :sku => '9999', :quantity => 25 } ]
-  end 
-  
+  end
+
   def test_missing_login
     assert_raise(ArgumentError) do
       ShipwireService.new(:password => 'test')
     end
   end
-  
+
   def test_missing_password
     assert_raise(ArgumentError) do
       ShipwireService.new(:login => 'cody')
     end
   end
-  
+
   def test_missing_credentials
     assert_raise(ArgumentError) do
       ShipwireService.new(:password => 'test')
     end
   end
-  
+
   def test_credentials_present
     assert_nothing_raised do
       ShipwireService.new(
@@ -54,7 +52,7 @@ class ShipwireTest < Test::Unit::TestCase
       )
     end
   end
-  
+
   def test_country_format
     xml = REXML::Document.new(@shipwire.send(:build_fulfillment_request, '123456', @address, @line_items, @options))
     country_node = REXML::XPath.first(xml, "//Country")
@@ -103,21 +101,21 @@ class ShipwireTest < Test::Unit::TestCase
     assert response.success?
     assert_equal Hash.new, response.tracking_numbers
   end
-  
+
   def test_successful_tracking
     expected = { "2986" => ["1ZW682E90326614239"],
                  "2987" => ["1ZW682E90326795080"] }
-    
+
     @shipwire.expects(:ssl_post).returns(successful_tracking_response)
     response = @shipwire.fetch_tracking_numbers(["2986", "2987"])
     assert response.success?
     assert_equal "3", response.params["total_orders"]
     assert_equal "Test", response.params["status"]
     assert_equal "2", response.params["total_shipped_orders"]
-    
+
     assert_equal expected, response.tracking_numbers
   end
-  
+
   def test_successful_tracking_with_live_data
     @shipwire.expects(:ssl_post).returns(successful_live_tracking_response)
     response = @shipwire.fetch_tracking_numbers([
@@ -129,15 +127,15 @@ class ShipwireTest < Test::Unit::TestCase
     assert_equal "15", response.params["total_orders"]
     assert_equal "0", response.params["status"]
     assert_equal "13", response.params["total_shipped_orders"]
-    
+
     assert_equal 13, response.tracking_numbers.size
   end
-  
+
   def test_valid_credentials
     @shipwire.expects(:ssl_post).returns(successful_empty_tracking_response)
     assert @shipwire.valid_credentials?
   end
-  
+
   def test_invalid_credentials
     @shipwire.expects(:ssl_post).returns(invalid_login_response)
     assert !@shipwire.valid_credentials?
@@ -176,10 +174,11 @@ class ShipwireTest < Test::Unit::TestCase
   end
 
   private
+
   def successful_empty_tracking_response
     "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\r\n<TrackingUpdateResponse><Status>Test</Status><TotalOrders></TotalOrders><TotalShippedOrders></TotalShippedOrders><TotalProducts></TotalProducts><Bookmark></Bookmark></TrackingUpdateResponse>"
   end
-  
+
   def successful_tracking_response
     <<-XML
 <?xml version="1.0"?>
@@ -200,7 +199,7 @@ class ShipwireTest < Test::Unit::TestCase
 </TrackingUpdateResponse>
     XML
   end
-  
+
   def successful_live_tracking_response
     <<-XML
 <?xml version="1.0" encoding="ISO-8859-1"?>
@@ -259,14 +258,14 @@ class ShipwireTest < Test::Unit::TestCase
 
     XML
   end
-  
+
   def invalid_login_response
     <<-XML
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <TrackingUpdateResponse><Status>Error</Status><ErrorMessage>
 Error with Valid Username/EmailAddress and Password Required.
     There is an error in XML document.
-</ErrorMessage></TrackingUpdateResponse>    
+</ErrorMessage></TrackingUpdateResponse>
     XML
   end
 end

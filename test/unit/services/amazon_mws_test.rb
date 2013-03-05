@@ -2,10 +2,7 @@ require 'test_helper'
 
 class AmazonMarketplaceWebServiceTest < Test::Unit::TestCase
   def setup
-    @service = AmazonMarketplaceWebService.new(
-                                               :login => 'l',
-                                               :password => 'p'
-                                               )
+    @service = AmazonMarketplaceWebService.new(:login => 'l', :password => 'p')
 
     @options = {
       :shipping_method => 'Standard',

@@ -40,7 +40,7 @@ class ShipwireTest < Test::Unit::TestCase
 
   def test_missing_credentials
     assert_raise(ArgumentError) do
-      ShipwireService.new(:password => 'test')
+      ShipwireService.new
     end
   end
 

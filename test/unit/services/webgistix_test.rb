@@ -40,7 +40,7 @@ class WebgistixTest < Test::Unit::TestCase
 
   def test_missing_credentials
     assert_raise(ArgumentError) do
-      WebgistixService.new(:password => 'test')
+      WebgistixService.new
     end
   end
 
